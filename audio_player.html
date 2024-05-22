@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Audio Player</title>
+    <style>
+        #audioFile {
+            display: none;
+        }
+
+        html,
+        body {
+            background-color: rgb(0, 0, 20);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            font-family: monospace;
+        }
+
+        h1 {
+            padding: 0;
+            margin: 0;
+            display: block;
+            width: 100vw;
+            color: magenta;
+            text-shadow: 0px 0px 40px magenta;
+            font-size: 3rem;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        #playButton {
+            color: lime;
+            background-color: transparent;
+            border: 0;
+            cursor: pointer;
+            font-size: 1.5rem;
+            font-family: monospace;
+        }
+
+        #playButton:focus {
+            outline: 0;
+        }
+
+        #playButton:disabled {
+            display: none;
+        }
+
+        #vizBlock {
+            position: fixed;
+            width: 50vw;
+            height: 50vh;
+            bottom: 0;
+            left: 0;
+            max-width: 32rem;
+            right: 0;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #vizBlock td div {
+            margin-left: 0.15rem;
+            margin-right: 0.15rem;
+            min-height: 0.25rem;
+            height: 0rem;
+            background-color: magenta;
+            box-shadow: 0px 0px 40px 4px magenta;
+            bottom: 0;
+            margin-top: auto;
+            width: calc(100% - 0.3rem);
+            position: absolute;
+        }
+
+        #vizBlock td {
+            position: relative;
+        }
+
+        #logs {
+            margin-top: 1rem;
+            color: orange;
+        }
+
+        #console {
+            font-family: monospace;
+            border: 1px solid transparent;
+            background-color: transparent;
+            color: lime;
+            border-radius: 2px;
+        }
+
+        #console {
+            outline: 0;
+        }
+
+        #console::placeholder {
+            color: green;
+        }
+
+        .crt::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: rgba(18, 16, 16, 0.1);
+            opacity: 0;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .crt::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+    </style>
+    <link rel="icon" type="x-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAABAFJREFUWEfNl8uvX2MUhp+lOBRtOXW/9SKoEvd7UCV6YcCAECMRAzEhBhp/gDAQJmIgYtRUGDBwD6VNlBCXpuoWRQ/HrS16O6fVy2c/J+8vafgDdgc7+5z9+9a33vW+71rf3gXQaEPAIf4N7ChqZ6NNAo4AhoEjgcnAAcAe4J9cuyfCoYADgYNzGbsXGAP+AjYBW4va879c+zxwo/GidjXaocDRuQ5Pkm3AZmBLNt4VMMGNSQ8K0CnAVMBYwRm7wauo8UZznTmqGs2FJh8ranejGXx8krupCf8A/pSdbGilMuZdVqxWVvzdu/v5+1HAMYB7ypwgfi1qS6PJ2OQBAJNbuWBODu3S+1sCxhrNDWXlOGB65PHZAIDJtwIbE2e1OxpN6SzIOJMqx09FbZYJAQxFc1Geks3HXQT8ngQnAKcFnCDdSID/9cDguVIZ/x3wSxg6NvFSL8gRmVAfTehDk4vSSn4M7Wp4JjAnwNR9UKGSbA+1SnVYKB8wpM6u/Qr4Oj5QjhmRR3ZHZMDgEwNA7X6Q9pjoPOCsaG0l3xikGYvam1iLaHG4csiQxZwByJye+BL4PCZWjpnx0gSAacDsOPbnVK9uFwLnhD43WFPUxkazUgGflIo1oklkxPjRorY3mj4x3gIEtgb4JB0kC8ZvE4DJ/Ue3W6E0W/nFQfkZ4OVzq7okspjA+THBALAzlEv3R9lLGc7P5ZqPw4TP3WuKAC5K764rarTRTgWuSXWrgQ/T6JcD86OhydTQ9tQzdoP6qr+g9NBy4IPEXgacG5ZWFLW+0WRxtgCujkE0iyivzGLpdJO/u7trbkqSb7Ox66XdTtD99rxmFejpAfdKB3oloMyCl2mLej/MzRHAvLTM91lwXXp8ZVGrG21uR+cdqVwK3dS1ekGT2SlOOk1qV8wKWCWUiWVFrW00GbAQZ8U78cssAVyVNnFAaLwrgv6NmOs2QFBWvjTJ1XVxvOL80D+6/LX4RRB3hgmTvZBOWhgWV8WQwwK4FPgi/XxtXPspsCLD5+7MgOeBt2Oo+wB11f1WLwt2g355KiCu7wq7PcZ8NkNJb12QtnwXmCQAq1kbI96Qsfle6Fc3K9FwT8cP90cSp9yLYcSKbw3gZZ3mT0b3e2PMpUUtjwxK7px5a+L8aTR71T732JUij+A3M5Bu6ai9Oe3zTDzySObG4+q7z1jWJw8C6zpmHo7G96SdX+6M/VIG0IL4QIk3CeDsjEsPGgE4hF6PMdX/xjj5OcC1j+YofSg6PtFNuAfin8c80rvWXBJZ74rxXo0PPOgWZRgJYMN+wUDvHui9C3qfA71Pwt7Pgt5Pw97fB3p/I+r3nXB/eCvu97sgX0O9fhn1/m04+DTv5ev4XyrvgPv9iDDEAAAAAElFTkSuQmCC">
+</head>
+
+<body class="crt">
+    <h1 onclick="document.querySelector('#audioFile').click()">no file selected</h1>
+    <input type="file" id="audioFile" accept="audio/*">
+    <button id="playButton" disabled>> play</button>
+    <div id="logs" style="display: none;">
+
+        //Loaded file!<br>
+        //Thanks for using ZXMushroom63's audio player
+    </div>
+    <input type="text" id="console" style="display: none;" placeholder="loop, speed 1.0">
+    <script>
+        const audioFileInput = document.getElementById('audioFile');
+        const playButton = document.getElementById('playButton');
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        var lastCommand = "";
+        var vizElems = [];
+        let isPlaying = false;
+        var playbackRate = 1.0;
+        var loop = false;
+        audioFileInput.addEventListener('change', function () {
+            const audioFile = this.files[0];
+            document.querySelector("h1").innerText = audioFile.name;
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                vizElems = document.querySelectorAll("#vizBlock tr td div");
+                vizElems.forEach(vizElem => {
+                    vizElem.setAttribute("data-val", "0");
+                });
+                audioContext.decodeAudioData(e.target.result, function (buffer) {
+                    var source;
+                    analyser.connect(audioContext.destination);
+                    playButton.disabled = false;
+                    document.querySelector("#logs").style.display = "block";
+                    document.querySelector("#console").style.display = "block";
+                    document.querySelector("#console").onkeyup = function (ev) {
+                        if (ev.key === "Enter") {
+                            lastCommand = ev.target.value;
+                            ev.target.value = "";
+                            ev.preventDefault();
+                            if (lastCommand.toLowerCase().startsWith("loop")) {
+                                loop = !loop;
+                                document.querySelector("#logs").innerText = "Loop toggled to '" + loop + "'";
+                            } else if (lastCommand.toLowerCase().startsWith("speed")) {
+                                playbackRate = lastCommand.toLowerCase().split(" ")[1] || 0.0;
+                                document.querySelector("#logs").innerText = "Set playback rate to " + playbackRate + "\nDefault is 1.0";
+                            } else {
+                                document.querySelector("#logs").innerText = "[ERROR] Invalid command.";
+                            }
+                        } else if (ev.key === "ArrowUp") {
+                            ev.target.value = lastCommand;
+                            ev.preventDefault();
+                        }
+                    };
+                    playButton.onclick = function () {
+                        if (!isPlaying) {
+                            source = audioContext.createBufferSource();
+                            window.theSource = source;
+                            source.buffer = buffer;
+                            source.connect(analyser);
+                            source.start(0);
+                            isPlaying = true;
+                            updateFrequencyData();
+                            playButton.textContent = '> stop';
+                            source.onended = function () {
+                                isPlaying = false;
+                                playButton.textContent = '> play';
+                            }
+                        } else {
+                            isPlaying = false;
+                            playButton.textContent = '> play';
+                            source.stop(0);
+                        }
+                        playButton.disabled = false;
+                    }
+                });
+            };
+            reader.readAsArrayBuffer(audioFile);
+        });
+        function updateFrequencyData() {
+            if (window.theSource) {
+                theSource.playbackRate.value = Math.max(Math.min(playbackRate, theSource.playbackRate.maxValue), theSource.playbackRate.minValue);
+                theSource.loop = loop;
+            }
+            analyser.getByteFrequencyData(dataArray);
+
+            const binSize = audioContext.sampleRate / analyser.fftSize; // frequency per bin
+
+            vizElems.forEach(vizElem => {
+                vizElem.style.transition = "height 0.0s";
+                var oldValue = (vizElem.getAttribute("data-val") * 1.0) || 0.0;
+                const index = Math.round((Math.floor(vizElem.getAttribute("data-freq") * 1) || 0) / binSize);
+                var value = dataArray[index] * 0.1;
+                var newValue = oldValue + ((value - oldValue) * 0.9);
+                vizElem.style.height = newValue + "rem";
+                vizElem.setAttribute("data-val", newValue);
+            });
+
+            if (isPlaying) {
+                requestAnimationFrame(updateFrequencyData);
+            } else {
+                vizElems.forEach(vizElem => {
+                    vizElem.style.transition = "height 0.15s";
+                    vizElem.style.height = "0rem";
+                    vizElem.setAttribute("data-val", 0.0);
+                });
+            }
+        }
+    </script>
+    <table id="vizBlock">
+        <tr>
+            <td>
+                <div data-freq="1"></div>
+            </td>
+            <td>
+                <div data-freq="16"></div>
+            </td>
+            <td>
+                <div data-freq="40"></div>
+            </td>
+            <td>
+                <div data-freq="60"></div>
+            </td>
+            <td>
+                <div data-freq="250"></div>
+            </td>
+            <td>
+                <div data-freq="500"></div>
+            </td>
+            <td>
+                <div data-freq="2000"></div>
+            </td>
+            <td>
+                <div data-freq="4000"></div>
+            </td>
+            <td>
+                <div data-freq="6000"></div>
+            </td>
+            <td>
+                <div data-freq="10000"></div>
+            </td>
+            <td>
+                <div data-freq="15000"></div>
+            </td>
+            <td>
+                <div data-freq="20000"></div>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
