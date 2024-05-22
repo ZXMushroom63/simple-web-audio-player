@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html style="--title-color: magenta;">
 
 <head>
     <title>Audio Player</title>
@@ -24,8 +24,8 @@
             margin: 0;
             display: block;
             width: 100vw;
-            color: magenta;
-            text-shadow: 0px 0px 40px magenta;
+            color: var(--title-color);
+            text-shadow: 0px 0px 40px var(--title-color);
             font-size: 3rem;
             text-align: center;
             cursor: pointer;
@@ -65,8 +65,8 @@
             margin-right: 0.15rem;
             min-height: 0.25rem;
             height: 0rem;
-            background-color: magenta;
-            box-shadow: 0px 0px 40px 4px magenta;
+            background-color: var(--accent-color);
+            box-shadow: 0px 0px 40px 4px var(--accent-color);
             bottom: 0;
             margin-top: auto;
             width: calc(100% - 0.3rem);
@@ -126,10 +126,11 @@
             pointer-events: none;
         }
     </style>
-    <link rel="icon" type="x-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAABAFJREFUWEfNl8uvX2MUhp+lOBRtOXW/9SKoEvd7UCV6YcCAECMRAzEhBhp/gDAQJmIgYtRUGDBwD6VNlBCXpuoWRQ/HrS16O6fVy2c/J+8vafgDdgc7+5z9+9a33vW+71rf3gXQaEPAIf4N7ChqZ6NNAo4AhoEjgcnAAcAe4J9cuyfCoYADgYNzGbsXGAP+AjYBW4va879c+zxwo/GidjXaocDRuQ5Pkm3AZmBLNt4VMMGNSQ8K0CnAVMBYwRm7wauo8UZznTmqGs2FJh8ranejGXx8krupCf8A/pSdbGilMuZdVqxWVvzdu/v5+1HAMYB7ypwgfi1qS6PJ2OQBAJNbuWBODu3S+1sCxhrNDWXlOGB65PHZAIDJtwIbE2e1OxpN6SzIOJMqx09FbZYJAQxFc1Geks3HXQT8ngQnAKcFnCDdSID/9cDguVIZ/x3wSxg6NvFSL8gRmVAfTehDk4vSSn4M7Wp4JjAnwNR9UKGSbA+1SnVYKB8wpM6u/Qr4Oj5QjhmRR3ZHZMDgEwNA7X6Q9pjoPOCsaG0l3xikGYvam1iLaHG4csiQxZwByJye+BL4PCZWjpnx0gSAacDsOPbnVK9uFwLnhD43WFPUxkazUgGflIo1oklkxPjRorY3mj4x3gIEtgb4JB0kC8ZvE4DJ/Ue3W6E0W/nFQfkZ4OVzq7okspjA+THBALAzlEv3R9lLGc7P5ZqPw4TP3WuKAC5K764rarTRTgWuSXWrgQ/T6JcD86OhydTQ9tQzdoP6qr+g9NBy4IPEXgacG5ZWFLW+0WRxtgCujkE0iyivzGLpdJO/u7trbkqSb7Ox66XdTtD99rxmFejpAfdKB3oloMyCl2mLej/MzRHAvLTM91lwXXp8ZVGrG21uR+cdqVwK3dS1ekGT2SlOOk1qV8wKWCWUiWVFrW00GbAQZ8U78cssAVyVNnFAaLwrgv6NmOs2QFBWvjTJ1XVxvOL80D+6/LX4RRB3hgmTvZBOWhgWV8WQwwK4FPgi/XxtXPspsCLD5+7MgOeBt2Oo+wB11f1WLwt2g355KiCu7wq7PcZ8NkNJb12QtnwXmCQAq1kbI96Qsfle6Fc3K9FwT8cP90cSp9yLYcSKbw3gZZ3mT0b3e2PMpUUtjwxK7px5a+L8aTR71T732JUij+A3M5Bu6ai9Oe3zTDzySObG4+q7z1jWJw8C6zpmHo7G96SdX+6M/VIG0IL4QIk3CeDsjEsPGgE4hF6PMdX/xjj5OcC1j+YofSg6PtFNuAfin8c80rvWXBJZ74rxXo0PPOgWZRgJYMN+wUDvHui9C3qfA71Pwt7Pgt5Pw97fB3p/I+r3nXB/eCvu97sgX0O9fhn1/m04+DTv5ev4XyrvgPv9iDDEAAAAAElFTkSuQmCC">
+    <link rel="icon" type="x-icon"
+        href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAABAFJREFUWEfNl8uvX2MUhp+lOBRtOXW/9SKoEvd7UCV6YcCAECMRAzEhBhp/gDAQJmIgYtRUGDBwD6VNlBCXpuoWRQ/HrS16O6fVy2c/J+8vafgDdgc7+5z9+9a33vW+71rf3gXQaEPAIf4N7ChqZ6NNAo4AhoEjgcnAAcAe4J9cuyfCoYADgYNzGbsXGAP+AjYBW4va879c+zxwo/GidjXaocDRuQ5Pkm3AZmBLNt4VMMGNSQ8K0CnAVMBYwRm7wauo8UZznTmqGs2FJh8ranejGXx8krupCf8A/pSdbGilMuZdVqxWVvzdu/v5+1HAMYB7ypwgfi1qS6PJ2OQBAJNbuWBODu3S+1sCxhrNDWXlOGB65PHZAIDJtwIbE2e1OxpN6SzIOJMqx09FbZYJAQxFc1Geks3HXQT8ngQnAKcFnCDdSID/9cDguVIZ/x3wSxg6NvFSL8gRmVAfTehDk4vSSn4M7Wp4JjAnwNR9UKGSbA+1SnVYKB8wpM6u/Qr4Oj5QjhmRR3ZHZMDgEwNA7X6Q9pjoPOCsaG0l3xikGYvam1iLaHG4csiQxZwByJye+BL4PCZWjpnx0gSAacDsOPbnVK9uFwLnhD43WFPUxkazUgGflIo1oklkxPjRorY3mj4x3gIEtgb4JB0kC8ZvE4DJ/Ue3W6E0W/nFQfkZ4OVzq7okspjA+THBALAzlEv3R9lLGc7P5ZqPw4TP3WuKAC5K764rarTRTgWuSXWrgQ/T6JcD86OhydTQ9tQzdoP6qr+g9NBy4IPEXgacG5ZWFLW+0WRxtgCujkE0iyivzGLpdJO/u7trbkqSb7Ox66XdTtD99rxmFejpAfdKB3oloMyCl2mLej/MzRHAvLTM91lwXXp8ZVGrG21uR+cdqVwK3dS1ekGT2SlOOk1qV8wKWCWUiWVFrW00GbAQZ8U78cssAVyVNnFAaLwrgv6NmOs2QFBWvjTJ1XVxvOL80D+6/LX4RRB3hgmTvZBOWhgWV8WQwwK4FPgi/XxtXPspsCLD5+7MgOeBt2Oo+wB11f1WLwt2g355KiCu7wq7PcZ8NkNJb12QtnwXmCQAq1kbI96Qsfle6Fc3K9FwT8cP90cSp9yLYcSKbw3gZZ3mT0b3e2PMpUUtjwxK7px5a+L8aTR71T732JUij+A3M5Bu6ai9Oe3zTDzySObG4+q7z1jWJw8C6zpmHo7G96SdX+6M/VIG0IL4QIk3CeDsjEsPGgE4hF6PMdX/xjj5OcC1j+YofSg6PtFNuAfin8c80rvWXBJZ74rxXo0PPOgWZRgJYMN+wUDvHui9C3qfA71Pwt7Pgt5Pw97fB3p/I+r3nXB/eCvu97sgX0O9fhn1/m04+DTv5ev4XyrvgPv9iDDEAAAAAElFTkSuQmCC">
 </head>
 
-<body class="crt">
+<body class="crt" style="--accent-color: magenta;">
     <h1 onclick="document.querySelector('#audioFile').click()">no file selected</h1>
     <input type="file" id="audioFile" accept="audio/*">
     <button id="playButton" disabled>> play</button>
@@ -138,7 +139,7 @@
         //Loaded file!<br>
         //Thanks for using ZXMushroom63's audio player
     </div>
-    <input type="text" id="console" style="display: none;" placeholder="loop, speed 1.0">
+    <input type="text" id="console" style="display: none;" placeholder="help">
     <script>
         const audioFileInput = document.getElementById('audioFile');
         const playButton = document.getElementById('playButton');
@@ -151,6 +152,7 @@
         var vizElems = [];
         let isPlaying = false;
         var playbackRate = 1.0;
+        var viz_smooth = 0.1;
         var loop = false;
         audioFileInput.addEventListener('change', function () {
             const audioFile = this.files[0];
@@ -176,11 +178,22 @@
                             if (lastCommand.toLowerCase().startsWith("loop")) {
                                 loop = !loop;
                                 document.querySelector("#logs").innerText = "Loop toggled to '" + loop + "'";
+                            } else if (lastCommand.toLowerCase().startsWith("help")) {
+                                document.querySelector("#logs").innerHTML = "[COMMANDS]<br>loop<br>speed 1.0<br>viz_smooth 0.1<br>viz_accent magenta<br>title_accent magenta";
                             } else if (lastCommand.toLowerCase().startsWith("speed")) {
                                 playbackRate = lastCommand.toLowerCase().split(" ")[1] || 0.0;
                                 document.querySelector("#logs").innerText = "Set playback rate to " + playbackRate + "\nDefault is 1.0";
+                            } else if (lastCommand.toLowerCase().startsWith("viz_smooth")) {
+                                viz_smooth = Math.max(Math.min(lastCommand.toLowerCase().split(" ")[1] || 0.0, 1.0), 0.0);
+                                document.querySelector("#logs").innerText = "Set visualiser smoothing to " + viz_smooth + "\nDefault is 0.1";
+                            } else if (lastCommand.toLowerCase().startsWith("viz_accent")) {
+                                document.body.style = "--accent-color: "+(lastCommand.toLowerCase().split(" ")[1] || "magenta");
+                                document.querySelector("#logs").innerText = "Set visualiser accent to " + (lastCommand.toLowerCase().split(" ")[1] || "magenta") + "\nDefault is magenta";
+                            } else if (lastCommand.toLowerCase().startsWith("title_accent")) {
+                                document.documentElement.style = "--title-color: "+(lastCommand.toLowerCase().split(" ")[1] || "magenta");
+                                document.querySelector("#logs").innerText = "Set title accent to " + (lastCommand.toLowerCase().split(" ")[1] || "magenta") + "\nDefault is magenta";
                             } else {
-                                document.querySelector("#logs").innerText = "[ERROR] Invalid command.";
+                                document.querySelector("#logs").innerText = "[ERROR] Invalid command: " + lastCommand;
                             }
                         } else if (ev.key === "ArrowUp") {
                             ev.target.value = lastCommand;
@@ -226,7 +239,7 @@
                 var oldValue = (vizElem.getAttribute("data-val") * 1.0) || 0.0;
                 const index = Math.round((Math.floor(vizElem.getAttribute("data-freq") * 1) || 0) / binSize);
                 var value = dataArray[index] * 0.1;
-                var newValue = oldValue + ((value - oldValue) * 0.9);
+                var newValue = oldValue + ((value - oldValue) * (1 - viz_smooth));
                 vizElem.style.height = newValue + "rem";
                 vizElem.setAttribute("data-val", newValue);
             });
