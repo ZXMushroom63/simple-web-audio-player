@@ -1,4 +1,5 @@
 # simple-web-audio-player
+![Demo Image](https://raw.githubusercontent.com/ZXMushroom63/simple-web-audio-player/main/Screenshot%202024-05-22%20153423.png)
 Quick HTML5 audio player I made because I was bored
 
 Click on "no file selected" to open a file picker, then click "> play" to start playing it.
