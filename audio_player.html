@@ -286,6 +286,7 @@
       });
     </script>
     <script>
+      
       const audioFileInput = document.getElementById("audioFile");
       const playButton = document.getElementById("playButton");
       const audioContext = new (window.AudioContext ||
@@ -304,12 +305,31 @@
       var volumePanel = stats.addPanel(
         new Stats.Panel("Avg. Volume", "#0ff", "#002")
       );
+      function clearAudioData() {
+        if (window.theSource) {
+          window.theSource.stop(0);
+          window.theSource.disconnect(analyser);
+          window.theSource = null;
+        }
+      }
+      function resetVisualizer() {
+        vizElems.forEach((vizElem) => {
+          vizElem.style.height = "0rem";
+          vizElem.setAttribute("data-val", 0.0);
+        });
+      }
       stats.showPanel(3);
       document.body.appendChild(stats.dom);
       window.quickplay = () => {};
       window.quickpause = () => {};
       audioFileInput.addEventListener("change", function () {
+        clearAudioData();
+        resetVisualizer();
         const audioFile = this.files[0];
+        if (!audioFile) {
+          document.querySelector("h1").innerText = "no file selected";
+          return;
+        }
         document.querySelector("h1").innerText = audioFile.name;
         const reader = new FileReader();
 
