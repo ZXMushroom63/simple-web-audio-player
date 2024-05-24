@@ -286,7 +286,6 @@
       });
     </script>
     <script>
-      
       const audioFileInput = document.getElementById("audioFile");
       const playButton = document.getElementById("playButton");
       const audioContext = new (window.AudioContext ||
@@ -295,6 +294,10 @@
       analyser.fftSize = 2048;
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
+      const bassBoostFilter = audioContext.createBiquadFilter();
+      bassBoostFilter.type = "lowshelf";
+      bassBoostFilter.frequency.value = 200; // Set the cutoff frequency for bass boost
+      bassBoostFilter.gain.value = 0;
       var lastCommand = "";
       var vizElems = [];
       let isPlaying = false;
@@ -365,7 +368,7 @@
                     "Loop toggled to '" + loop + "'";
                 } else if (lastCommand.toLowerCase().startsWith("help")) {
                   document.querySelector("#logs").innerHTML =
-                    "[COMMANDS]<br>loop<br>speed 1.0<br>viz_smooth 0.1<br>viz_accent magenta<br>title_accent magenta";
+                    "[COMMANDS]<br>loop<br>speed 1.0<br>viz_smooth 0.1<br>viz_accent magenta<br>title_accent magenta<br>bass_boost 0.0";
                 } else if (lastCommand.toLowerCase().startsWith("speed")) {
                   playbackRate = lastCommand.toLowerCase().split(" ")[1] || 0.0;
                   document.querySelector("#logs").innerText =
@@ -400,6 +403,14 @@
                     "Set title accent to " +
                     (lastCommand.toLowerCase().split(" ")[1] || "magenta") +
                     "\nDefault is magenta";
+                } else if (lastCommand.toLowerCase().startsWith("bass_boost")) {
+                  const parts = lastCommand.toLowerCase().split(" ");
+                  const strength = parseFloat(parts[1]) || 0;
+
+                  bassBoostFilter.gain.value = strength;
+                  document.querySelector(
+                    "#logs"
+                  ).innerText = `Bass boost set to strength ${strength}`;
                 } else {
                   document.querySelector("#logs").innerText =
                     "[ERROR] Invalid command: " + lastCommand;
@@ -414,7 +425,8 @@
                 source = audioContext.createBufferSource();
                 window.theSource = source;
                 source.buffer = buffer;
-                source.connect(analyser);
+                source.connect(bassBoostFilter);
+                bassBoostFilter.connect(analyser);
                 source.start(0);
                 isPlaying = true;
                 updateFrequencyData();
