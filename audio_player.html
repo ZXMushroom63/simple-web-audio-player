@@ -31,17 +31,62 @@
       }
 
       #quickControls {
+        user-select: none;
         position: fixed;
         left: 0;
         bottom: 0;
       }
 
       #quickControls p {
+        user-select: none;
         margin: 0;
         padding: 0;
         color: white;
         cursor: pointer;
         text-shadow: 0px 0px 2px;
+      }
+
+      #playlist {
+        user-select: none;
+        padding: 1rem;
+        float: right;
+      }
+
+      #playlist p {
+        font-size: 1.25rem;
+        margin: 0;
+        padding: 0;
+        color: white;
+        cursor: pointer;
+        text-shadow: 0px 0px 2px;
+      }
+
+      #playlist ol {
+        font-size: 1.1rem;
+        display: block;
+        max-height: 50vh;
+      }
+
+      #playlist li {
+        color: grey;
+      }
+
+      #playlist li.current {
+        color: lightseagreen;
+      }
+
+      #playlist span {
+        user-select: none;
+        text-decoration: underline;
+        cursor: pointer;
+      }
+
+      #playlist a {
+        color: red;
+        user-select: none;
+        text-decoration: underline;
+        cursor: pointer;
+        text-shadow: 0px 0px 3px;
       }
 
       #playButton {
@@ -298,6 +343,7 @@
       bassBoostFilter.type = "lowshelf";
       bassBoostFilter.frequency.value = 200; // Set the cutoff frequency for bass boost
       bassBoostFilter.gain.value = 0;
+      var playlistIdx = 0;
       var lastCommand = "";
       var vizElems = [];
       let isPlaying = false;
@@ -310,9 +356,26 @@
       );
       function clearAudioData() {
         if (window.theSource) {
+          isPlaying = false;
+          window.theSource.onended = function () {};
           window.theSource.stop(0);
-          window.theSource.disconnect(analyser);
+          try {
+            window.theSource.disconnect(bassBoostFilter);
+          } catch (error) {
+            //
+          }
+          try {
+            bassBoostFilter.disconnect(analyser);
+          } catch (error) {
+            //
+          }
+          try {
+            analyser.disconnect(audioContext.destination);
+          } catch (error) {
+            //
+          }
           window.theSource = null;
+          playButton.textContent = "> play";
         }
       }
       function resetVisualizer() {
@@ -321,14 +384,9 @@
           vizElem.setAttribute("data-val", 0.0);
         });
       }
-      stats.showPanel(3);
-      document.body.appendChild(stats.dom);
-      window.quickplay = () => {};
-      window.quickpause = () => {};
-      audioFileInput.addEventListener("change", function () {
+      function playFile(audioFile, autoStartPlaying, finishCallback) {
         clearAudioData();
         resetVisualizer();
-        const audioFile = this.files[0];
         if (!audioFile) {
           document.querySelector("h1").innerText = "no file selected";
           return;
@@ -343,7 +401,6 @@
           });
           audioContext.decodeAudioData(e.target.result, function (buffer) {
             var source;
-            analyser.connect(audioContext.destination);
             playButton.disabled = false;
             window.quickplay = () => {
               playbackRate = 1.0;
@@ -420,13 +477,27 @@
                 ev.preventDefault();
               }
             };
-            playButton.onclick = function () {
+            window.stopPlaying = function () {
+              if (source) {
+                isPlaying = false;
+                playButton.textContent = "> play";
+                source.onended = function () {};
+                source.stop(0);
+                source.disconnect(bassBoostFilter);
+                bassBoostFilter.disconnect(analyser);
+                analyser.disconnect(audioContext.destination);
+                window.theSource = null;
+                source = null;
+              }
+            };
+            if (autoStartPlaying) {
               if (!isPlaying) {
                 source = audioContext.createBufferSource();
                 window.theSource = source;
                 source.buffer = buffer;
                 source.connect(bassBoostFilter);
                 bassBoostFilter.connect(analyser);
+                analyser.connect(audioContext.destination);
                 source.start(0);
                 isPlaying = true;
                 updateFrequencyData();
@@ -434,17 +505,55 @@
                 source.onended = function () {
                   isPlaying = false;
                   playButton.textContent = "> play";
+                  if (finishCallback) {
+                    finishCallback();
+                  }
+                };
+              }
+            }
+            playButton.onclick = function () {
+              if (!isPlaying) {
+                source = audioContext.createBufferSource();
+                window.theSource = source;
+                source.buffer = buffer;
+                source.connect(bassBoostFilter);
+                bassBoostFilter.connect(analyser);
+                analyser.connect(audioContext.destination);
+                source.start(0);
+                isPlaying = true;
+                updateFrequencyData();
+                playButton.textContent = "> stop";
+                source.onended = function () {
+                  isPlaying = false;
+                  playButton.textContent = "> play";
+                  if (finishCallback) {
+                    finishCallback();
+                  }
                 };
               } else {
                 isPlaying = false;
                 playButton.textContent = "> play";
+                source.onended = function () {};
                 source.stop(0);
+                source.disconnect(bassBoostFilter);
+                bassBoostFilter.disconnect(analyser);
+                analyser.disconnect(audioContext.destination);
+                window.theSource = null;
+                source = null;
               }
               playButton.disabled = false;
             };
           });
         };
         reader.readAsArrayBuffer(audioFile);
+      }
+      stats.showPanel(3);
+      document.body.appendChild(stats.dom);
+      window.quickplay = () => {};
+      window.quickpause = () => {};
+      audioFileInput.addEventListener("change", function () {
+        const audioFile = this.files[0];
+        playFile(audioFile, false);
       });
       function updateFrequencyData() {
         stats.begin();
@@ -488,6 +597,83 @@
             vizElem.setAttribute("data-val", 0.0);
           });
         }
+      }
+      function playNextOnPlaylist() {
+        playlistIdx++;
+        playlistIdx %= document.querySelectorAll("#playlist>ol>li").length;
+        document.querySelectorAll("#playlist>ol>li.current").forEach((elem) => {
+          elem.classList.remove("current");
+        });
+        document.querySelectorAll("#playlist>ol>li")[playlistIdx].classList.add("current");
+        playFile(
+          document.querySelectorAll("#playlist>ol>li")[playlistIdx].audioFile,
+          true,
+          playNextOnPlaylist
+        );
+      }
+      function addtoplaylist() {
+        var fp = document.createElement("input");
+        fp.type = "file";
+        fp.accept = "audio/*";
+        fp.addEventListener("input", () => {
+          if (fp.files[0]) {
+            const file = fp.files[0];
+            var entry = document.createElement("li");
+            entry.audioFile = file;
+            entry.setAttribute(
+              "idx",
+              document.querySelectorAll("#playlist>ol>li").length
+            );
+
+            var fileName = document.createElement("span");
+            fileName.innerText = file.name;
+            fileName.addEventListener("click", (ev) => {
+              ev.preventDefault();
+              ev.stopImmediatePropagation();
+              ev.stopPropagation();
+              document
+                .querySelectorAll("#playlist>ol>li.current")
+                .forEach((elem) => {
+                  elem.classList.remove("current");
+                });
+              entry.classList.add("current");
+              if (isPlaying) {
+                stopPlaying();
+              }
+              playlistIdx = parseInt(entry.getAttribute("idx"));
+              playFile(entry.audioFile, true, playNextOnPlaylist);
+            });
+            entry.appendChild(fileName);
+
+            var spacer = document.createTextNode(" ");
+            entry.appendChild(spacer);
+
+            var removeButton = document.createElement("a");
+            removeButton.innerText = "[x]";
+            removeButton.addEventListener("click", (ev) => {
+              ev.preventDefault();
+              ev.stopImmediatePropagation();
+              ev.stopPropagation();
+              var thisIdx = parseInt(entry.getAttribute("idx"));
+              if (thisIdx < playlistIdx) {
+                playlistIdx--;
+                entry.remove();
+              } else if (thisIdx === playlistIdx) {
+                if (isPlaying) {
+                  stopPlaying();
+                }
+                entry.remove();
+                playNextOnPlaylist();
+              } else {
+                entry.remove();
+              }
+            });
+            entry.appendChild(removeButton);
+
+            document.querySelector("#playlist>ol").appendChild(entry);
+          }
+        });
+        fp.click();
       }
     </script>
     <table id="vizBlock">
@@ -533,6 +719,11 @@
     <div id="quickControls">
       <p onclick="quickplay()">> quick play</p>
       <p onclick="quickpause()">> quick pause</p>
+    </div>
+    <div id="playlist">
+      <p onclick="addtoplaylist()">> add playlist entry</p>
+      <ol>
+      </ol>
     </div>
   </body>
 </html>
