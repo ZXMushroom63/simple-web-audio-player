@@ -431,7 +431,7 @@
           }
           function updateMeter() {
             //ctx.fillStyle = "rgba(0,0,0,0.51)";
-            ctx.fillStyle = "rgba(0,0,0,1)";
+            ctx.fillStyle = "rgba(0,0,15,1)";
             ctx.fillRect(0, 0, meter.width, meter.height);
             ctx.fillStyle = color;
             ctx.strokeStyle = color;
@@ -463,6 +463,64 @@
           updateMeter();
           volume.document.documentElement.classList.add("crt");
           volume.document.body.appendChild(meter);
+        },
+        domain: function (color) {
+          var domain = window.open();
+
+          var meter = document.createElement("canvas");
+          var ctx = meter.getContext("2d");
+          var content = new Float32Array(0).fill(0);
+          var songName = "";
+          var alphaRendering = 0.0;
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = color;
+          modules.injectCrt(domain);
+          function resizeMeter() {
+            meter.width = domain.innerWidth;
+            meter.height = domain.innerHeight;
+          }
+          function updateMeter() {
+            ctx.fillStyle = "rgba(0,0,15,0.51)";
+            ctx.shadowColor = "transparent";
+            ctx.fillRect(0, 0, meter.width, meter.height);
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            ctx.font = "24px monospace";
+            var padding = 5;
+            ctx.fillText(songName, padding, 24 + padding/4 + (Math.sin(Date.now()*0.0025)+1)*10);
+            ctx.beginPath();
+            var x = 0;
+            const sliceWidth = (meter.width * 1.0) / content.length;
+            for (let i = 0; i < content.length; i++) {
+              const v = content[i] * 200.0;
+              const y = meter.height / 2 + v;
+              if (i === 0) {
+                ctx.moveTo(x, y);
+              } else {
+                ctx.lineTo(x, y);
+              }
+              x += sliceWidth;
+            }
+            ctx.lineTo(meter.width, meter.height / 2);
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 40;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.stroke();
+            content.forEach((x, i)=>{
+                content[i] *= 0.96;
+            });
+            domain.requestAnimationFrame(updateMeter);
+          }
+          domain.addEventListener("resize", resizeMeter);
+          modules._listeners.push((data)=>{
+            songName = data.track;
+            content = data.timeDomainData;
+          });
+          meter.style = 'position:fixed;top:0;left:0;background-color: rgb(0,0,15);';
+          updateMeter();
+          domain.document.documentElement.classList.add("crt");
+          domain.document.body.appendChild(meter);
         }
       }
       const title = document.querySelector("h1");
@@ -474,6 +532,10 @@
       analyser.fftSize = 2048;
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
+      const timeDomainData = new Float32Array(bufferLength);
+      const volumeNode = audioContext.createGain();
+      volumeNode.gain.value = 1;
+      volumeNode.connect(audioContext.destination);
       const bassBoostFilter = audioContext.createBiquadFilter();
       bassBoostFilter.type = "lowshelf";
       bassBoostFilter.frequency.value = 200; // Set the cutoff frequency for bass boost
@@ -505,7 +567,7 @@
             //
           }
           try {
-            analyser.disconnect(audioContext.destination);
+            analyser.disconnect(volumeNode);
           } catch (error) {
             //
           }
@@ -560,11 +622,15 @@
                     "Loop toggled to '" + loop + "'";
                 } else if (lastCommand.toLowerCase().startsWith("help")) {
                   document.querySelector("#logs").innerHTML =
-                    "[COMMANDS]<br>loop<br>speed 1.0<br>viz_smooth 0.1<br>viz_accent magenta<br>title_accent magenta<br>bass_boost 0.0<br>module_volume red";
+                    "[COMMANDS]<br>loop<br>speed 1.0<br>volume 1.0<br>viz_smooth 0.1<br>viz_accent magenta<br>title_accent magenta<br>bass_boost 0.0<br>module_volume red<br>module_domain cyan";
                 } else if (lastCommand.toLowerCase().startsWith("speed")) {
-                  playbackRate = lastCommand.toLowerCase().split(" ")[1] || 0.0;
+                  playbackRate = parseFloat(lastCommand.toLowerCase().split(" ")[1]) || 0.0;
                   document.querySelector("#logs").innerText =
                     "Set playback rate to " + playbackRate + "\nDefault is 1.0";
+                } else if (lastCommand.toLowerCase().startsWith("volume")) {
+                  volumeNode.gain.value = parseFloat(lastCommand.toLowerCase().split(" ")[1]) || 0.0;
+                  document.querySelector("#logs").innerText =
+                    "Set volume to " + (parseFloat(lastCommand.toLowerCase().split(" ")[1]) || 0.0) + "\nDefault is 1.0";
                 } else if (lastCommand.toLowerCase().startsWith("viz_smooth")) {
                   viz_smooth = Math.max(
                     Math.min(
@@ -612,6 +678,15 @@
                   document.querySelector(
                     "#logs"
                   ).innerText = `Launched volume vizualizer module.`;
+                } else if (lastCommand.toLowerCase().startsWith("module_domain")) {
+                  const parts = lastCommand.toLowerCase().split(" ");
+                  const color = parts[1] || "cyan";
+
+                  modules.domain(color);
+
+                  document.querySelector(
+                    "#logs"
+                  ).innerText = `Launched domain vizualizer module.`;
                 } else {
                   document.querySelector("#logs").innerText =
                     "[ERROR] Invalid command: " + lastCommand;
@@ -629,7 +704,7 @@
                 source.stop(0);
                 source.disconnect(bassBoostFilter);
                 bassBoostFilter.disconnect(analyser);
-                analyser.disconnect(audioContext.destination);
+                analyser.disconnect(volumeNode);
                 window.theSource = null;
                 source = null;
               }
@@ -641,7 +716,7 @@
                 source.buffer = buffer;
                 source.connect(bassBoostFilter);
                 bassBoostFilter.connect(analyser);
-                analyser.connect(audioContext.destination);
+                analyser.connect(volumeNode);
                 source.start(0);
                 isPlaying = true;
                 updateFrequencyData();
@@ -662,7 +737,7 @@
                 source.buffer = buffer;
                 source.connect(bassBoostFilter);
                 bassBoostFilter.connect(analyser);
-                analyser.connect(audioContext.destination);
+                analyser.connect(volumeNode);
                 source.start(0);
                 isPlaying = true;
                 updateFrequencyData();
@@ -681,7 +756,7 @@
                 source.stop(0);
                 source.disconnect(bassBoostFilter);
                 bassBoostFilter.disconnect(analyser);
-                analyser.disconnect(audioContext.destination);
+                analyser.disconnect(volumeNode);
                 window.theSource = null;
                 source = null;
               }
@@ -707,8 +782,10 @@
             theSource.playbackRate.minValue
           );
           theSource.loop = loop;
+          
         }
         analyser.getByteFrequencyData(dataArray);
+        analyser.getFloatTimeDomainData(timeDomainData);
 
         const binSize = audioContext.sampleRate / analyser.fftSize; // frequency per bin
 
@@ -743,27 +820,36 @@
           });
         }
 
-        const bassIdx = Math.round(
-          40 / binSize
+        const bassStartIdx = Math.round(
+          16 / binSize
         );
-        var value = dataArray[bassIdx];
+        const bassEndIdx = Math.round(
+          256 / binSize
+        );
+
+        var bassAmplitude = 0;
+        for (let i = bassStartIdx; i <= bassEndIdx; i++) {
+          bassAmplitude += dataArray[i];
+        }
+        bassAmplitude /= bassEndIdx - bassStartIdx;
+
         if (!Number.isFinite(screenFX.prevBass)) {
-          screenFX.prevBass = value || 0.01;
+          screenFX.prevBass = bassAmplitude || 0.01;
         }
         var bassOut = 0.0;
-        if (value / screenFX.prevBass > 1.006 && screenFX.scaleCooldown < 1) {
+        if (bassAmplitude / screenFX.prevBass > 1.010 && screenFX.scaleCooldown < 1) {
           screenFX.scaleCooldown = 16;
-          bassOut = value / screenFX.prevBass;
-          screenFX.scale = (Math.min(1.1, 1 + 0.0125*(value / screenFX.prevBass)) - screenFX.scale) * 1 + screenFX.scale;
+          bassOut = bassAmplitude / screenFX.prevBass;
+          screenFX.scale = (Math.min(1.1, 1 + 0.02*(bassAmplitude / screenFX.prevBass)*(averageVolume/60)) - screenFX.scale) * 1 + screenFX.scale;
         }
 
         screenFX.scaleCooldown = Math.max(0, screenFX.scaleCooldown - 1)
 
-        screenFX.prevBass = value;
+        screenFX.prevBass = bassAmplitude;
 
-        screenFX.saturate = Math.max(averageVolume / 1.5 / 60, 0.75);
+        screenFX.saturate = Math.max(averageVolume / 1.5 / 55, 0.75);
 
-        modules.pushData({averageVolume: averageVolume, binSize: binSize, dataArray: dataArray, track: title.innerText, bass: bassOut});
+        modules.pushData({averageVolume: averageVolume, binSize: binSize, dataArray: dataArray, track: title.innerText, bass: bassOut, timeDomainData: timeDomainData});
       }
       function playNextOnPlaylist() {
         playlistIdx++;
