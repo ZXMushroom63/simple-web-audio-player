@@ -2,12 +2,6 @@
 <html style="--title-color: magenta" class="crt">
   <head>
     <title>Audio Player</title>
-    <style id="screenfx">
-      body {
-        transform: scale(1);
-        filter: saturate(1)
-      }
-    </style>
     <style>
       #audioFile {
         display: none;
@@ -137,7 +131,7 @@
         min-height: 0.25rem;
         height: 0rem;
         background-color: var(--accent-color);
-        box-shadow: 0px 0px 40px 4px var(--accent-color);
+        box-shadow: 0px 0px 40px 1px var(--accent-color);
         bottom: 0;
         margin-top: auto;
         width: calc(100% - 0.3rem);
@@ -217,7 +211,7 @@
     <h1 onclick="document.querySelector('#audioFile').click()">
       no file selected
     </h1>
-    <input type="file" id="audioFile" accept="audio/*" />
+    <input type="file" id="audioFile" accept="audio/*,video/*" />
     <button id="playButton" disabled>> play</button>
     <div id="logs" style="display: none">
       //Loaded file!<br />
@@ -344,27 +338,46 @@
       });
     </script>
     <script>
-      const screenFX = {
-        prevBass: null,
-        saturate: 1,
-        scale: 1,
-        scaleCooldown: 0,
-        fxCss: document.querySelector("#screenfx"),
-        fx: function fx() {
-          screenFX.saturate = (screenFX.saturate - 1) * 0.97 + 1;
-          screenFX.scale = (screenFX.scale - 1) * 0.95 + 1;
-          screenFX.fxCss.innerHTML = `
-          body {
-            transform: scale(${screenFX.scale});
+      var screenFXInstances = [];
+      /**
+       * @param {Window} window
+       */
+      function makeScreenFX(win) {
+        var fxScc = document.createElement("style");
+        win.document.head.appendChild(fxScc);
+        var inst = {
+          prevBass: null,
+          saturate: 1,
+          scale: 1,
+          scaleCooldown: 0,
+          fxCss: fxScc,
+          fx: function fx() {
+            inst.saturate = (inst.saturate - 1) * 0.97 + 1;
+            inst.scale = (inst.scale - 1) * 0.95 + 1;
+            inst.fxCss.innerHTML = `
+            body {
+              transform: scale(${inst.scale});
+            }
+            html {
+              filter: saturate(${inst.saturate});
+            }
+            `;
+            setTimeout(inst.fx, 1 / 30);
           }
-          html {
-            filter: saturate(${screenFX.saturate});
+        };
+        screenFXInstances.push(inst);
+        win.addEventListener("beforeunload", ()=>{
+          var idx = screenFXInstances.indexOf(inst);
+          if (idx !== -1) {
+            screenFXInstances.splice(idx, 1);
           }
-          `;
-          setTimeout(screenFX.fx, 1 / 30);
-        }
-      }
+        });
+        return inst;
+      };
+
+      const screenFX = makeScreenFX(window);
       screenFX.fx();
+
       const crtCode = `
       .crt::after {
         content: " ";
@@ -405,6 +418,11 @@
       `;
       const modules = {
         _listeners: [],
+        essentialsCSS: function (doc) {
+          var s = document.createElement("style");
+          s.innerHTML = `html,body {padding: 0; margin: 0; overflow: hidden}`;
+          doc.head.appendChild(s);
+        },
         injectCrt: function (win) {
           var crt = document.createElement("style");
           crt.innerHTML = crtCode;
@@ -416,15 +434,15 @@
             callback(data);
           });
         },
-        volume: function (color) {
+        volume: function (color, bass) {
           var volume = window.open();
-
           var meter = document.createElement("canvas");
           var ctx = meter.getContext("2d");
           var content = Array(64).fill(0);
           var songName = "";
           var alphaRendering = 0.0;
           modules.injectCrt(volume);
+          modules.essentialsCSS(volume.document);
           function resizeMeter() {
             meter.width = volume.innerWidth;
             meter.height = volume.innerHeight;
@@ -463,10 +481,200 @@
           updateMeter();
           volume.document.documentElement.classList.add("crt");
           volume.document.body.appendChild(meter);
-        },
-        domain: function (color) {
-          var domain = window.open();
 
+          if (bass) {
+            var sFX = makeScreenFX(volume);
+            sFX.fx();
+          }
+        },
+        block: function (color, scrFx) {
+          var volume = window.open();
+          var meter = document.createElement("canvas");
+          var ctx = meter.getContext("2d");
+          var binSize = 1024;
+          var content = Array(200).fill([]);
+          var rows = [
+            {f: 1, c: "magenta"},
+            {f: 16, c: "magenta"},
+            {f: 40, c: "magenta"},
+            {f: 60, c: "orange"},
+            {f: 250, c: "orange"},
+            {f: 500, c: "lime"},
+            {f: 2000, c: "lime"},
+            {f: 4000, c: "cyan"},
+            {f: 6000, c: "cyan"},
+            {f: 10000, c: "blue"},
+            {f: 15000, c: "blue"},
+            {f: 20000, c: "red"}
+          ];
+          var min = 1;
+          var max = 20000;
+          var samplePointsCount = 200;
+          rows = [];
+          var lastF = -1000;
+          for (let i = 0; i < samplePointsCount; i++) {
+            let f = min * Math.pow(max / min, i / (samplePointsCount - 1));
+            if (f - lastF >= 8) {
+              rows.push({f: f, c: color, i: 1});
+              lastF = f;
+            } else {
+              i++;
+            }
+          }
+          
+          var songName = "";
+          var alphaRendering = 0.0;
+          modules.injectCrt(volume);
+          modules.essentialsCSS(volume.document);
+          function resizeMeter() {
+            meter.width = volume.innerWidth;
+            meter.height = volume.innerHeight;
+          }
+          function updateMeter() {
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = "rgba(0,0,15,1)";
+            ctx.fillRect(0, 0, meter.width, meter.height);
+
+            
+            
+            for (let i = 0; i < content.length; i++) {
+              const dataArray = content[i];
+              const x = i / content.length;
+              const width = volume.innerWidth / content.length;
+              rows.forEach((row, j) => {
+                const index = row.i;
+                ctx.fillStyle = row.c;
+                const y = ((meter.height - rows.length) / rows.length) * j + j;
+                const blockHeight = meter.height / rows.length;
+                ctx.globalAlpha = (dataArray[index]) / 255 || 0;
+                ctx.fillRect(x * meter.width, y, width, blockHeight);
+              });
+            }
+
+
+            
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            ctx.font = "24px monospace";
+            var padding = 5;
+            ctx.fillText(songName, padding, 24 + padding/4 + (Math.sin(Date.now()*0.0025)+1)*10);
+            volume.requestAnimationFrame(updateMeter);
+          }
+          volume.addEventListener("resize", resizeMeter);
+          modules._listeners.push((data)=>{
+            binSize = data.binSize;
+            rows.forEach((row)=>{
+              row.i = Math.round(Math.floor(row.f) / binSize);
+            });
+            songName = data.track;
+            content.pop();
+            content.unshift(structuredClone(data.dataArray));
+          });
+          meter.style = 'position:fixed;top:0;left:0;background-color: rgb(0,0,15);';
+          updateMeter();
+          volume.document.documentElement.classList.add("crt");
+          volume.document.body.appendChild(meter);
+
+          if (scrFx) {
+            var sFX = makeScreenFX(volume);
+            sFX.fx();
+          }
+        },
+        cityscape: function (color, scrFx) {
+          var volume = window.open();
+          var meter = document.createElement("canvas");
+          var ctx = meter.getContext("2d");
+          var binSize = 1024;
+          var content = Array(256).fill([]);
+          var rows = [
+            {f: 1, c: "magenta"},
+            {f: 16, c: "magenta"},
+            {f: 40, c: "magenta"},
+            {f: 60, c: "orange"},
+            {f: 250, c: "orange"},
+            {f: 500, c: "lime"},
+            {f: 2000, c: "lime"},
+            {f: 4000, c: "cyan"},
+            {f: 6000, c: "cyan"},
+            {f: 10000, c: "blue"},
+            {f: 15000, c: "blue"},
+            {f: 20000, c: "red"}
+          ];
+          var min = 1;
+          var max = 20000;
+          var samplePointsCount = 128;
+          rows = [];
+          var lastF = -1000;
+          for (let i = 0; i < samplePointsCount; i++) {
+            let f = min * Math.pow(max / min, i / (samplePointsCount - 1));
+            if (f - lastF >= 8) {
+              rows.push({f: f, c: color, i: 1});
+              lastF = f;
+            }
+          }
+          
+          var songName = "";
+          var alphaRendering = 0.0;
+          modules.injectCrt(volume);
+          modules.essentialsCSS(volume.document);
+          function resizeMeter() {
+            meter.width = volume.innerWidth;
+            meter.height = volume.innerHeight;
+          }
+          function updateMeter() {
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = "rgba(0,0,15,1)";
+            ctx.fillRect(0, 0, meter.width, meter.height);
+
+            
+            
+            for (let i = 0; i < content.length; i++) {
+              const dataArray = content[i];
+              const x = i / content.length;
+              const width = volume.innerWidth / content.length;
+              rows.forEach((row, j) => {
+                const index = row.i;
+                ctx.fillStyle = row.c;
+                const y = ((meter.height - rows.length) / rows.length) * j + j;
+                const blockHeight = meter.height / rows.length;
+                ctx.globalAlpha = 2*Math.pow((dataArray[index]) / 255, 2) || 0;
+                ctx.fillRect(x * meter.width, y, width, blockHeight);
+              });
+            }
+
+
+            
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            ctx.font = "24px monospace";
+            var padding = 5;
+            ctx.fillText(songName, padding, 24 + padding/4 + (Math.sin(Date.now()*0.0025)+1)*10);
+            volume.requestAnimationFrame(updateMeter);
+          }
+          volume.addEventListener("resize", resizeMeter);
+          modules._listeners.push((data)=>{
+            binSize = data.binSize;
+            rows.forEach((row)=>{
+              row.i = Math.round(Math.floor(row.f) / binSize);
+            });
+            songName = data.track;
+            content.pop();
+            content.unshift(structuredClone(data.dataArray));
+          });
+          meter.style = 'position:fixed;top:0;left:0;background-color: rgb(0,0,15);';
+          updateMeter();
+          volume.document.documentElement.classList.add("crt");
+          volume.document.body.appendChild(meter);
+
+          if (scrFx) {
+            var sFX = makeScreenFX(volume);
+            sFX.fx();
+          }
+        },
+        domain: function (color, bass) {
+          var domain = window.open();
           var meter = document.createElement("canvas");
           var ctx = meter.getContext("2d");
           var content = new Float32Array(0).fill(0);
@@ -474,6 +682,7 @@
           var alphaRendering = 0.0;
           ctx.lineWidth = 2;
           ctx.strokeStyle = color;
+          modules.essentialsCSS(domain.document);
           modules.injectCrt(domain);
           function resizeMeter() {
             meter.width = domain.innerWidth;
@@ -491,9 +700,11 @@
             ctx.beginPath();
             var x = 0;
             const sliceWidth = (meter.width * 1.0) / content.length;
+            var prevY = 0;
             for (let i = 0; i < content.length; i++) {
               const v = content[i] * 200.0;
               const y = meter.height / 2 + v;
+              prevY = y;
               if (i === 0) {
                 ctx.moveTo(x, y);
               } else {
@@ -501,14 +712,14 @@
               }
               x += sliceWidth;
             }
-            ctx.lineTo(meter.width, meter.height / 2);
+            ctx.lineTo(meter.width, prevY);
             ctx.shadowColor = color;
             ctx.shadowBlur = 40;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             ctx.stroke();
             content.forEach((x, i)=>{
-                content[i] *= 0.96;
+              content[i] *= 0.96;
             });
             domain.requestAnimationFrame(updateMeter);
           }
@@ -521,9 +732,16 @@
           updateMeter();
           domain.document.documentElement.classList.add("crt");
           domain.document.body.appendChild(meter);
+
+          if (bass) {
+            var sFX = makeScreenFX(domain);
+            sFX.fx();
+          }
         }
       }
       const title = document.querySelector("h1");
+      var bassFxActive = false;
+      var saturateVolumeThreshold = 55;
       const audioFileInput = document.getElementById("audioFile");
       const playButton = document.getElementById("playButton");
       const audioContext = new (window.AudioContext ||
@@ -597,7 +815,7 @@
             vizElem.setAttribute("data-val", "0");
           });
           audioContext.decodeAudioData(e.target.result, function (buffer) {
-            var source;
+            window.decodedBuffer = buffer;
             playButton.disabled = false;
             window.quickplay = () => {
               playbackRate = 1.0;
@@ -622,7 +840,7 @@
                     "Loop toggled to '" + loop + "'";
                 } else if (lastCommand.toLowerCase().startsWith("help")) {
                   document.querySelector("#logs").innerHTML =
-                    "[COMMANDS]<br>loop<br>speed 1.0<br>volume 1.0<br>viz_smooth 0.1<br>viz_accent magenta<br>title_accent magenta<br>bass_boost 0.0<br>module_volume red<br>module_domain cyan";
+                    "[COMMANDS]<br>loop<br>speed 1.0<br>volume 1.0<br>viz_smooth 0.1<br>viz_accent magenta<br>title_accent magenta<br>bass_boost 0.0<br>module_volume red true<br>module_domain cyan true<br>bass_anims false<br>sat_threshold 55<br>module_spectrogram lime true<br>module_cityscape lime true";
                 } else if (lastCommand.toLowerCase().startsWith("speed")) {
                   playbackRate = parseFloat(lastCommand.toLowerCase().split(" ")[1]) || 0.0;
                   document.querySelector("#logs").innerText =
@@ -672,21 +890,57 @@
                 } else if (lastCommand.toLowerCase().startsWith("module_volume")) {
                   const parts = lastCommand.toLowerCase().split(" ");
                   const color = parts[1] || "red";
+                  const bass = (parts[2] || "false") !== "false";
 
-                  modules.volume(color);
+                  modules.volume(color, bass);
 
                   document.querySelector(
                     "#logs"
                   ).innerText = `Launched volume vizualizer module.`;
+                } else if (lastCommand.toLowerCase().startsWith("module_spectrogram")) {
+                  const parts = lastCommand.toLowerCase().split(" ");
+                  const color = parts[1] || "lime";
+                  const bass = (parts[2] || "false") !== "false";
+
+                  modules.block(color, bass);
+
+                  document.querySelector(
+                    "#logs"
+                  ).innerText = `Launched spectrogram vizualizer module.`;
                 } else if (lastCommand.toLowerCase().startsWith("module_domain")) {
                   const parts = lastCommand.toLowerCase().split(" ");
                   const color = parts[1] || "cyan";
+                  const bass = (parts[2] || "false") !== "false";
 
-                  modules.domain(color);
+                  modules.domain(color, bass);
 
                   document.querySelector(
                     "#logs"
                   ).innerText = `Launched domain vizualizer module.`;
+                } else if (lastCommand.toLowerCase().startsWith("module_cityscape")) {
+                  const parts = lastCommand.toLowerCase().split(" ");
+                  const color = parts[1] || "lime";
+                  const bass = (parts[2] || "false") !== "false";
+
+                  modules.cityscape(color, bass);
+
+                  document.querySelector(
+                    "#logs"
+                  ).innerText = `Launched cityscape vizualizer module.`;
+                } else if (lastCommand.toLowerCase().startsWith("bass_anims")) {
+                  const parts = lastCommand.toLowerCase().split(" ");
+                  const bass = (parts[1] || "false") !== "false";
+                  bassFxActive = bass;
+                  document.querySelector(
+                    "#logs"
+                  ).innerText = `Set bass animations to ${bassFxActive}, default=false.`;
+                } else if (lastCommand.toLowerCase().startsWith("sat_threshold")) {
+                  const parts = lastCommand.toLowerCase().split(" ");
+                  const sat = parseInt(parts[1] || 55) || 55;
+                  saturateVolumeThreshold = sat;
+                  document.querySelector(
+                    "#logs"
+                  ).innerText = `Set saturation threshold to ${saturateVolumeThreshold}, default=55.`;
                 } else {
                   document.querySelector("#logs").innerText =
                     "[ERROR] Invalid command: " + lastCommand;
@@ -706,12 +960,12 @@
                 bassBoostFilter.disconnect(analyser);
                 analyser.disconnect(volumeNode);
                 window.theSource = null;
-                source = null;
+                window.source = null;
               }
             };
             if (autoStartPlaying) {
               if (!isPlaying) {
-                source = audioContext.createBufferSource();
+                window.source = audioContext.createBufferSource();
                 window.theSource = source;
                 source.buffer = buffer;
                 source.connect(bassBoostFilter);
@@ -732,7 +986,7 @@
             }
             playButton.onclick = function () {
               if (!isPlaying) {
-                source = audioContext.createBufferSource();
+                window.source = audioContext.createBufferSource();
                 window.theSource = source;
                 source.buffer = buffer;
                 source.connect(bassBoostFilter);
@@ -758,7 +1012,7 @@
                 bassBoostFilter.disconnect(analyser);
                 analyser.disconnect(volumeNode);
                 window.theSource = null;
-                source = null;
+                window.source = null;
               }
               playButton.disabled = false;
             };
@@ -782,7 +1036,6 @@
             theSource.playbackRate.minValue
           );
           theSource.loop = loop;
-          
         }
         analyser.getByteFrequencyData(dataArray);
         analyser.getFloatTimeDomainData(timeDomainData);
@@ -833,23 +1086,29 @@
         }
         bassAmplitude /= bassEndIdx - bassStartIdx;
 
-        if (!Number.isFinite(screenFX.prevBass)) {
-          screenFX.prevBass = bassAmplitude || 0.01;
-        }
-        var bassOut = 0.0;
-        if (bassAmplitude / screenFX.prevBass > 1.010 && screenFX.scaleCooldown < 1) {
-          screenFX.scaleCooldown = 16;
-          bassOut = bassAmplitude / screenFX.prevBass;
-          screenFX.scale = (Math.min(1.1, 1 + 0.02*(bassAmplitude / screenFX.prevBass)*(averageVolume/60)) - screenFX.scale) * 1 + screenFX.scale;
-        }
+        screenFXInstances.forEach(scrFx => {
+          if (!Number.isFinite(scrFx.prevBass)) {
+            scrFx.prevBass = bassAmplitude || 0.01;
+          }
+          var bassOut = 0.0;
+          if (bassAmplitude / scrFx.prevBass > 1.010 && scrFx.scaleCooldown < 1) {
+            scrFx.scaleCooldown = 16;
+            bassOut = bassAmplitude / scrFx.prevBass;
+            if (bassFxActive) {
+              scrFx.scale = (Math.min(1.1, 1 + 0.02*(bassAmplitude / scrFx.prevBass)*(averageVolume/60)) - scrFx.scale) * 1 + scrFx.scale;
+            } else {
+              scrFx.scale = 1;
+            }
+          }
 
-        screenFX.scaleCooldown = Math.max(0, screenFX.scaleCooldown - 1)
+          scrFx.scaleCooldown = Math.max(0, scrFx.scaleCooldown - 1)
 
-        screenFX.prevBass = bassAmplitude;
+          scrFx.prevBass = bassAmplitude;
 
-        screenFX.saturate = Math.max(averageVolume / 1.5 / 55, 0.75);
+          scrFx.saturate = Math.max(averageVolume / 1.5 / saturateVolumeThreshold, 0.5);
+        });
 
-        modules.pushData({averageVolume: averageVolume, binSize: binSize, dataArray: dataArray, track: title.innerText, bass: bassOut, timeDomainData: timeDomainData});
+        modules.pushData({averageVolume: averageVolume, binSize: binSize, dataArray: dataArray, track: title.innerText, bass: bassAmplitude, timeDomainData: timeDomainData});
       }
       function playNextOnPlaylist() {
         playlistIdx++;
@@ -928,6 +1187,48 @@
         });
         fp.click();
       }
+      var keymap = {};
+      window.addEventListener("keydown", (e)=>{
+        keymap[e.key] = true;
+        if (e.key.toLowerCase() === " " && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement) && !(e.target instanceof HTMLElement && e.target.contentEditable)) {
+          if (playbackRate == 0.0) {
+            quickplay();
+          } else {
+            quickpause();
+          }
+        } else {
+          console.log(e.target);
+        }
+      });
+
+      function moveAudioToPos(time) {
+        if (!theSource || !decodedBuffer) {
+          return;
+        }
+
+        theSource.disconnect(bassBoostFilter);
+        
+        window.source = audioContext.createBufferSource();
+        window.theSource = source;
+        source.buffer = decodedBuffer;
+        source.connect(bassBoostFilter);
+        isPlaying = true;
+
+        source.start(0, time || 0);
+      }
+
+      window.addEventListener("keyup", (e)=>{
+        keymap[e.key] = false;
+      });
+      setInterval(()=>{
+        //Seek interval
+        if (window.theSource) {
+          if (keymap["ArrowLeft"]) {
+            
+          }
+        }
+        
+      }, 100);
     </script>
     <table id="vizBlock">
       <tr>
